@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+    I am creating a VPC using cloudformation stack
+
+
+Parameters:
+    VPCName:
+        Type: String
+        Default: test-vpc-alamin
+
+Mappings:
+    CidrBlock:
+        VPC:
+            CIDR: '10.0.0.0/16'
+
+Resources:
+    VPC:
+        Type: AWS::EC2::VPC
+        Properties:
+            CidrBlock: !FindInMap ['CidrBlock', 'VPC', 'CIDR']
+            EnableDnsSupport: 'false'
+            EnableDnsHostnames: 'false'
+            InstanceTenancy: default
+            Tags:
+                - Key: Name
+                  Value: !Ref 'VPCName'
+                - Key: Foo
+                  Value: Bar
+
+Outputs:
+    VPCId:
+        Description: The Id of the VPC, that the stack is deployed in
+        Value: !Ref 'VPC'
