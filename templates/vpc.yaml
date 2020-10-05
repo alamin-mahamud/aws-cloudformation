@@ -28,6 +28,6 @@ Resources:
                   Value: Bar
 
 Outputs:
-    VPCId:
+    VpcId:
         Description: The Id of the VPC, that the stack is deployed in
         Value: !Ref 'VPC'

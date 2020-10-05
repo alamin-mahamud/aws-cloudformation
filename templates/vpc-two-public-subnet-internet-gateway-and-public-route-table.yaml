@@ -1,0 +1,144 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+    VPC with Two Public Subnets and Internet Gateway which will be attached with the VPC
+    and They will have a Public Route Table, which means all traffic can be in/out
+
+
+Parameters:
+    VPCName:
+        Type: String
+        Default: test-vpc-alamin
+    RouteTableName:
+        Type: String
+        Default: test-route-table-alamin
+
+
+Mappings:
+    CidrBlocks:
+        VPC:
+            CIDR: '10.0.0.0/16'
+        PublicSubnetOne:
+            CIDR: '10.0.0.0/24'
+        PublicSubnetTwo:
+            CIDR: '10.0.1.0/24'
+
+
+Resources:
+    VPC:
+        Type: AWS::EC2::VPC
+        Properties:
+            CidrBlock: !FindInMap ['CidrBlocks', 'VPC', 'CIDR']
+            EnableDnsSupport: 'false'
+            EnableDnsHostnames: 'false'
+            InstanceTenancy: default
+            Tags:
+                - Key: Name
+                  Value: !Ref VPCName
+                - Key: Project
+                  Value: test
+
+    PublicSubnetOne:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId: !Ref VPC
+            CidrBlock: !FindInMap ['CidrBlocks', 'PublicSubnetOne', 'CIDR']
+            AvailabilityZone: 
+                Fn::Select:
+                    - 0
+                    - Fn::GetAZs: {Ref: 'AWS::Region'}
+            MapPublicIpOnLaunch: true
+                
+    PublicSubnetTwo:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId: !Ref VPC
+            CidrBlock: !FindInMap ['CidrBlocks', 'PublicSubnetTwo', 'CIDR']
+            AvailabilityZone:
+                Fn::Select:
+                    - 1
+                    - Fn::GetAZs: {Ref: 'AWS::Region'}
+            MapPublicIpOnLaunch: true
+    
+    InternetGateway:
+        Type: AWS::EC2::InternetGateway
+        Properties:
+            Tags:
+            - Key: Project
+              Value: test
+    
+    GatewayAttachmentToVPC:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+            VpcId: !Ref VPC
+            InternetGatewayId: !Ref InternetGateway
+    
+    PublicRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            Tags:
+                - Key: Name
+                  Value: !Ref RouteTableName
+                - Key: Project
+                  Value: test
+            VpcId: !Ref VPC
+    
+    PublicRouteForRouteTable:
+        Type: AWS::EC2::Route
+        DependsOn: GatewayAttachmentToVPC
+        Properties:
+            RouteTableId: !Ref PublicRouteTable
+            DestinationCidrBlock: 0.0.0.0/0
+            GatewayId: !Ref InternetGateway
+    
+    PublicSubnetOneRouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            SubnetId: !Ref PublicSubnetOne
+            RouteTableId: !Ref PublicRouteTable
+
+    PublicSubnetTwoRouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            SubnetId: !Ref PublicSubnetTwo
+            RouteTableId: !Ref PublicRouteTable
+
+
+
+Outputs:
+    VpcId:
+        Description: VPC Id
+        Value: !Ref VPC
+    
+    PublicSubnetOne:
+        Description: Public Subnet One
+        Value: !Ref PublicSubnetOne
+
+    PublicSubnetTwo:
+        Description: Public Subnet Two
+        Value: !Ref PublicSubnetTwo
+
+    InternetGatewayId:
+        Description: Internet Gateway that public will use for accessing Internet
+        Value: !Ref InternetGateway
+
+    AttachedGatewayId:
+        Description: Attachment ID of Internet Gateway attached to VPC 
+        Value: !Ref GatewayAttachmentToVPC
+
+    RouteTableId:
+        Description: Public Route Table ID 
+        Value: !Ref PublicRouteTable
+    
+    RouteId:
+        Description: Id of the Route being Added to RouteTable
+        Value: !Ref PublicRouteForRouteTable
+
+    SubnetOneRouteTableAssociationId:
+        Description: Association Id for the Route Table being Associated with Subnet One 
+        Value: !Ref PublicSubnetOneRouteTableAssociation
+
+    SubnetTwoRouteTableAssociationId:
+        Description: Association Id for the Route Table being Associated with Subnet Two 
+        Value: !Ref PublicSubnetTwoRouteTableAssociation
+
+    
